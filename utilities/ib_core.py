@@ -108,7 +108,11 @@ def ba(px, pyx, beta, nR=24, iters=6000, tol=1e-13, restarts=12, seed=0):
         py = px @ pyx
         Iyr = np.nansum(pr[:, None] * pyr * np.log2(np.clip(pyr, 1e-300, None) /
                                                     py[None, :]))
-        obj = Iyr - Ixr / beta * LOG2 / LOG2      # compare on the IB Lagrangian
+        # Restart-selection criterion: proportional to the true nats-based IB
+        # Lagrangian the fixed-point update above actually optimizes (beta is
+        # calibrated against the natural-log D there), since Iyr - Ixr/beta
+        # equals that Lagrangian divided by the positive constant LOG2 --
+        # a uniform rescaling, so it ranks restarts identically.
         score = Iyr - Ixr / beta
         if best is None or score > best['score'] + 1e-12:
             best = dict(score=score, Ixr=Ixr, Iyr=Iyr, prx=prx, pr=pr, pyr=pyr)
