@@ -259,3 +259,27 @@ def simulate_nonuniform_chain_path(x_nodes, v, s, z0_group, n_max, seed=0):
         else:
             xs.append(x_nodes[idx + 1])
     return np.array(ts), np.array(xs), choice
+
+
+def quantize_ddm_path(ts_c, xs_c, x_nodes):
+    """Read an *already-simulated* continuous DDM path (ts_c, xs_c from
+    simulate_ddm_path) through a k-state capacity limit, by nearest-node
+    (Voronoi) assignment at every fine timestep: the coarse reading at time
+    t is whichever interior node of x_nodes the continuous position xs_c[t]
+    is currently closest to, and the boundary rows are clipped to the
+    absorbing values x_nodes[0]/x_nodes[-1] once the true path has crossed
+    them. This couples the coarse trace to the *same* noise realization as
+    xs_c -- unlike simulate_nonuniform_chain_path, which is its own
+    independently-simulated process with its own randomness -- so any
+    remaining visual mismatch reflects coarsening itself, not a different
+    random draw. Note this models a stronger observer than the rest of the
+    notebook: full-resolution accumulation with only the *readout* coarsened,
+    not the k-state chain (coarse dynamics throughout) that
+    ib_optimal_placement actually builds and that 3.4-3.5 score."""
+    interior = x_nodes[1:-1]
+    edges = (interior[:-1] + interior[1:]) / 2.0
+    idx = np.clip(np.searchsorted(edges, xs_c), 0, len(interior) - 1)
+    xs_q = interior[idx]
+    xs_q = np.where(xs_c <= x_nodes[0], x_nodes[0], xs_q)
+    xs_q = np.where(xs_c >= x_nodes[-1], x_nodes[-1], xs_q)
+    return xs_q
