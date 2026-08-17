@@ -176,14 +176,23 @@ def _mi(J):
 
 
 def fsm_scores(f, P, H):
-    """Capacity H(R) and I(R;Y) for filtering / prediction / next-observation."""
+    """Capacity H(R) and I(R;Y) for filtering / prediction / next-observation,
+    plus the Bayes-optimal (MAP) prediction accuracy for filtering and
+    one-step-ahead prediction. The accuracy scores are a decision-weighted
+    alternative to I(R;Y): both are computable straight from the stationary
+    joint p(r,y) (`E[max_y p(r,y)]`), and either can be passed as `target` to
+    optimal_recursive_fsm / hill_climb_fsm / exhaustive_optimal_fsm without
+    any other change, since those all just index this dict by `target`."""
     J = fsm_stationary(f, P, H)                  # p(r_t, y_t)
     pr = J.sum(1)
     cap = float(-np.nansum(pr * np.log2(np.where(pr > 0, pr, 1))))
     J_pred = J @ H.T                             # p(r_t, y_{t+1})
     J_obs = J_pred @ P                           # p(r_t, x_{t+1})
+    acc_filter = float(J.max(axis=1).sum())
+    acc_predict = float(J_pred.max(axis=1).sum())
     return dict(cap=cap, I_filter=_mi(J), I_predict=_mi(J_pred),
-                I_obs=_mi(J_obs), pr=pr, J=J)
+                I_obs=_mi(J_obs), acc_filter=acc_filter, acc_predict=acc_predict,
+                pr=pr, J=J)
 
 
 # ------------------------------------------ exact search over deterministic FSMs
